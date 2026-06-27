@@ -1,0 +1,31 @@
+# ~/.gitignore — el repo "odoo-training-marin" vive en $HOME, que está lleno de
+# datos sensibles (credenciales, llaves SSH/GPG, historiales de shell, todas las
+# transcripciones de Claude Code). Política de seguridad: IGNORAR TODO por defecto
+# y permitir SOLO lo explícitamente listado. NUNCA usar `git add -A` en este repo.
+#
+# Para versionar una skill personal nueva, replicar el patrón de minar-contexto:
+# des-ignorar su dir y luego permitir sus archivos de código (no su estado mutable).
+
+# 1) Ignorar todo en la raíz del home
+/*
+
+# 2) Permitir metadatos del repo y lo ya versionado
+!/.gitignore
+!/README.md
+!/.claude
+
+# 3) Dentro de .claude: ignorar todo, permitir selectivamente
+/.claude/*
+!/.claude/CLAUDE.md
+!/.claude/skills
+
+# 4) Dentro de skills: ignorar todo, permitir solo skills personales propias
+#    (las de terceros — pdf/docx/pptx/etc. — son re-instalables, no se versionan)
+/.claude/skills/*
+!/.claude/skills/minar-contexto
+
+# 5) Dentro de minar-contexto: versionar el código, NO el estado mutable
+/.claude/skills/minar-contexto/*
+!/.claude/skills/minar-contexto/SKILL.md
+!/.claude/skills/minar-contexto/mine_prepare.py
+# .state.json (marca de agua) y __pycache__/ quedan ignorados a propósito
