@@ -105,7 +105,12 @@ def main():
                 if not looks_human(txt):
                     continue
                 ts = d.get("timestamp", "") or ""
-                if args.since and ts and ts <= args.since:
+                # Incremental (--since set): drop messages at/older than the watermark
+                # AND messages with no timestamp (they can't be placed relative to the
+                # watermark, so re-including them every run would duplicate findings).
+                # A full run (args.since is None) keeps untimestamped messages, which is
+                # how they get recovered — matching "Límites conocidos" in SKILL.md.
+                if args.since and (not ts or ts <= args.since):
                     continue
                 blocks.append((ts, sid, proj, txt))
                 if ts:

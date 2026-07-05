@@ -158,8 +158,16 @@ Solo tras confirmación:
 1. Escribir/ampliar/podar las fichas aprobadas, igualando la convención (Fase 0).
 2. Actualizar `MEMORY.md`: añadir punteros de las nuevas; refrescar descripciones de
    las que cambiaron materialmente; quitar las jubiladas.
-3. **Avanzar la marca de agua** con el `max_ts` del manifest (para que la próxima
-   corrida incremental no reprocese lo ya visto):
+3. **Avanzar la marca de agua** con el `max_ts` del manifest — **solo si el barrido
+   fue completo**. Gate de completitud: verificar que TODOS los `n_batches` del
+   manifest devolvieron resultado (nº de conjuntos de hallazgos recibidos ==
+   `n_batches`). Si un lector murió a media tanda (los límites de sesión matan agentes
+   en esta máquina, ver [[project_suite_lote_coordinacion]]), **NO avanzar la marca de
+   agua este run**: déjala como estaba y la próxima corrida incremental re-mina todo
+   desde el último watermark (la dedup de la Fase 3 absorbe el traslape → hay
+   sobre-cobertura, nunca pérdida silenciosa). Tampoco avanzar si `max_ts` viene
+   vacío. Reportar "N de M lotes minados" en el resumen para no presentar un barrido
+   parcial como completo. Cuando el barrido esté completo, avanzar con:
 
 ```bash
 python3 - "$MAX_TS" <<'PY'
