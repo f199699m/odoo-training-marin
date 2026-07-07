@@ -42,9 +42,10 @@ def extract_text(content):
 
 
 def clean(text):
-    """Strip machine-injected wrappers (reminders, command tags) from text."""
+    """Strip machine-injected wrappers (reminders, command tags, task notices) from text."""
     if not text:
         return ""
+    text = re.sub(r"<task-notification>.*?</task-notification>", "", text, flags=re.S)
     text = re.sub(r"<system-reminder>.*?</system-reminder>", "", text, flags=re.S)
     text = re.sub(r"<local-command-[^>]*>.*?</local-command-[^>]*>", "", text, flags=re.S)
     text = re.sub(r"<command-[^>]*>.*?</command-[^>]*>", "", text, flags=re.S)
@@ -52,17 +53,44 @@ def clean(text):
     return text.strip()
 
 
-NOISE_PREFIXES = ("<system-reminder>", "<command-name>", "<local-command-", "Caveat:")
+# Prefixes that mark a whole message as machine-injected noise (not human-typed).
+NOISE_PREFIXES = (
+    "<system-reminder>", "<command-name>", "<local-command-", "Caveat:",
+    "<task-notification>",              # background-agent completion notice
+    "Base directory for this skill:",   # slash-command skill body injected with base dir
+)
+
+# Distinctive opening lines / template markers of injected skill bodies (repo SKILL.md
+# and built-in skills). Extend SKILL_BODY_SIGNATURES when a new skill leaks through:
+# find its unique opening among the long survivors and add it here (startswith match,
+# so it never false-drops human prose).
+SKILL_BODY_SIGNATURES = (
+    "Approach this as the design lead",   # artifact-design (built-in)
+)
+
+
+def is_skill_body(text):
+    """True if the message is an injected skill body, not something Carlos typed."""
+    s = text.lstrip()
+    if any(s.startswith(sig) for sig in SKILL_BODY_SIGNATURES):
+        return True
+    if "Argumento recibido:" in text[:400]:       # repo SKILL.md template line
+        return True
+    if "You are helping the user" in text[:200]:  # built-in skill instruction voice
+        return True
+    return False
 
 
 def looks_human(text):
-    """Heuristic: keep only text a human actually typed (drop noise / bare slash cmds)."""
+    """Heuristic: keep only text a human typed (drop noise / bare slash cmds / skill dumps)."""
     if not text:
         return False
     s = text.lstrip()
     if any(s.startswith(p) for p in NOISE_PREFIXES):
         return False
     if re.fullmatch(r"/[a-z0-9_-]+\s*", s):  # bare slash command, e.g. "/effort"
+        return False
+    if is_skill_body(text):
         return False
     return True
 
