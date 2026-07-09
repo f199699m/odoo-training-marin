@@ -11,7 +11,7 @@ description: >
   "amplía lo que sabes de mí", "destila lo nuevo del historial", o "mantén/poda mi
   memoria". Operación meta personal — opera sobre el historial y la memoria de Carlos,
   NO sobre datos de Odoo/AgroMarin.
-argument-hint: "[full | desde:AAAA-MM-DD]"
+argument-hint: "[full | poda | desde:AAAA-MM-DD]"
 allowed-tools: Agent, Bash, Read, Write, Edit, AskUserQuestion
 effort: high
 disable-model-invocation: true
@@ -61,11 +61,21 @@ Cuerpo conciso; `feedback`/`project` llevan `**Why:**` y `**How to apply:**`;
 enlazar fichas con `[[name]]`. Tras crear una ficha, añadir su puntero de una línea
 en `MEMORY.md`.
 
+**Presupuesto de tamaño**: cada puntero en `MEMORY.md` es **una línea real** (título +
+gancho de relevancia), NO un párrafo — `MEMORY.md` se carga entero en cada sesión. Si un
+puntero creció a párrafo, es señal de que la ficha debe **dividirse** o el puntero recortarse;
+el detalle vive en el cuerpo de la ficha, no en el índice. La Fase 3.5 vigila este presupuesto
+y las fichas hermanas que se traslapan (candidatas a fusionar).
+
 ## Parseo del argumento
 
 - **vacío** → modo **incremental**: leer `.state.json`; usar su `last_run_ts` como
   `--since`. Si no existe `.state.json` (primera corrida) → barrido completo y avisar.
 - **`full`** → barrido completo (sin `--since`); reprocesa todo el historial.
+- **`poda`** → **modo poda profunda** (combinable con `full`): además del minado normal,
+  correr la **Fase 3.5** — un agente lee TODAS las fichas completas (no solo el índice) y las
+  reta por recencia, contradicción, traslape y presupuesto de tamaño. Recomendado trimestral o
+  cuando el índice crezca.
 - **`desde:AAAA-MM-DD`** → usar esa fecha como `--since` (override manual).
 
 ---
@@ -80,6 +90,10 @@ cat ~/.claude/skills/minar-contexto/.state.json 2>/dev/null || echo '{}'
 
 Extraer `last_run_ts`. Determinar `SINCE` según el argumento (arriba). Resolver tu
 directorio scratchpad de sesión (está en tu system prompt) como `OUT=<scratchpad>/minar-contexto`.
+
+**Cadencia**: reportar los días desde `last_run_date`; si son **> 30**, recomendar además una
+corrida `poda` (la memoria acumula rancio y traslape con el tiempo, y nada la recuerda
+automáticamente — la nube de `/schedule` no alcanza los transcripts locales).
 
 ## Fase 1 — Preparar el corpus
 
@@ -137,6 +151,26 @@ Reunir todos los hallazgos. Como hilo principal (o un agente sintetizador con
    (memoria claramente falsa/obsoleta). Releer la ficha antes de proponer tocarla.
 5. Redactar `proposed_body` en el formato de memoria (conciso; Why/How donde aplique).
    Marcar inferencias no dichas por Carlos como `⚠️ POR CONFIRMAR`.
+
+## Fase 3.5 — Poda profunda (solo modo `poda`; recomendada trimestral)
+
+La poda de la Fase 3 es **estructuralmente débil**: los lectores de la Fase 2 solo ven el
+índice `MEMORY.md` (punteros de una línea) y abren una ficha "si sospechan" — no pueden retar
+lo que el puntero no revela, así que una ficha simplemente **rancia** (sin mensaje nuevo que la
+contradiga) nunca se cuestiona. El modo `poda` lo corrige: un agente `general-purpose` (o el
+hilo) lee **TODAS las fichas completas** de `~/.claude/projects/-home-marin/memory/*.md` y, por
+cada una, evalúa con evidencia:
+
+- **¿Sigue siendo cierta?** Contrastar contra el repo/git y contra fichas más recientes (una
+  ficha que dice "NO commiteado" cuando el git log ya muestra el commit está rancia).
+- **¿La contradice o subsume una ficha más reciente?** → candidata a jubilar/actualizar.
+- **¿Se traslapa con una ficha hermana?** Varias fichas del mismo tema = candidatas a
+  **fusionar** (p.ej. las de la suite ejecutiva). Proponer la fusión, nunca duplicar.
+- **¿Excede el presupuesto de tamaño?** (puntero de párrafo en `MEMORY.md`, ver Fase 0) →
+  proponer recorte del puntero o división de la ficha.
+
+Salida: propuestas de **fusionar / recortar / jubilar / dividir**, con evidencia, que entran al
+informe de la Fase 4 como cualquier otra poda. **Nunca borrar/fusionar sin OK.**
 
 ## Fase 4 — Informe + confirmación (SIEMPRE)
 
