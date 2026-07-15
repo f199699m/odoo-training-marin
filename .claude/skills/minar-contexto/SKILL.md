@@ -11,7 +11,7 @@ description: >
   "amplía lo que sabes de mí", "destila lo nuevo del historial", o "mantén/poda mi
   memoria". Operación meta personal — opera sobre el historial y la memoria de Carlos,
   NO sobre datos de Odoo/AgroMarin.
-argument-hint: "[full | poda | desde:AAAA-MM-DD]"
+argument-hint: "[full | poda | auditar | desde:AAAA-MM-DD]"
 allowed-tools: Agent, Bash, Read, Write, Edit, AskUserQuestion
 effort: high
 disable-model-invocation: true
@@ -76,6 +76,13 @@ y las fichas hermanas que se traslapan (candidatas a fusionar).
   correr la **Fase 3.5** — un agente lee TODAS las fichas completas (no solo el índice) y las
   reta por recencia, contradicción, traslape y presupuesto de tamaño. Recomendado trimestral o
   cuando el índice crezca.
+- **`auditar`** → **auditoría adversarial opt-in** (combinable con cualquier modo, p. ej.
+  `poda auditar`): tras la síntesis, corre la **Fase 3.7** — un agente **Fable 5** (modelo
+  DISTINTO, no un 2º Opus) relee la evidencia cruda y reta cada hallazgo/poda antes de
+  presentarlos. Gate por **peso de decisión, no por volumen**: máximo valor en corridas `poda`
+  (borrar/fusionar = irreversible y poco auto-evidente); valor marginal modesto en incrementales
+  chicas (la confirmación de Carlos en la Fase 4 ya es un adversario fuerte). Ver
+  [[feedback_fable_reconciliation_pattern]].
 - **`desde:AAAA-MM-DD`** → usar esa fecha como `--since` (override manual).
 
 ---
@@ -172,6 +179,39 @@ cada una, evalúa con evidencia:
 Salida: propuestas de **fusionar / recortar / jubilar / dividir**, con evidencia, que entran al
 informe de la Fase 4 como cualquier otra poda. **Nunca borrar/fusionar sin OK.**
 
+## Fase 3.7 — Auditoría adversarial Opus→Fable (solo token `auditar`)
+
+Instancia del patrón Opus→Fable de Carlos ([[feedback_fable_reconciliation_pattern]]) aplicado a
+minar contexto. El **valor NO es "un 2º par de ojos"** sino **diversidad de mirador**: un modelo
+distinto que relee la fuente y reta el encuadre caza lo que un 2º Opus no vería. Corre DESPUÉS de
+la síntesis (Fase 3, y 3.5 si aplica) y ANTES del informe (Fase 4), sobre los hallazgos ya
+consolidados.
+
+Primero **escribir los hallazgos de Opus a un archivo en scratchpad** (blanco estable para la
+refutación). Luego lanzar **un agente `general-purpose` con `model: fable`** y darle **tres
+blancos**:
+
+1. **Refutar cada hallazgo vivo**: ¿está respaldado por lo que Carlos DIJO (cita `[timestamp]`)?
+   ¿se sobre-infirió? ¿el `novelty`/`target_slug` es correcto, o ya está cubierto por una ficha?
+2. **Retar los descartes**: ¿algún ítem descartado como "ya cubierto" era en realidad un rasgo
+   durable que sí merecía ser hallazgo?
+3. **Crítico de completitud**: relee el/los lote(s) enteros — ¿qué hecho durable no se listó ni
+   como hallazgo ni como descarte? (En el piloto 2026-07-15 esto cazó la refinación más
+   consecuente: commits rancios que dejaban el índice `MEMORY.md` apuntando a hashes muertos.)
+
+Insumos al agente: el archivo de hallazgos de Opus, el/los lote(s) crudos, `MEMORY.md`, y las
+fichas completas que cada hallazgo toque.
+
+**Reglas del patrón (no negociable):**
+- Los hallazgos de Fable son **CANDIDATOS, no veredictos**. **Opus DEBE re-verificar en disco**
+  (git log, grep del repo, leer la ficha) **antes de aplicar** cualquier hallazgo de Fable — en
+  el piloto Fable afirmó "los commits no existen" cuando estaban huérfanos pero presentes; solo
+  la re-verificación lo corrigió. Fable **dispara** re-verificación, no la reemplaza.
+- Dar a Fable **latitud escéptica explícita** para cuestionar el encuadre/dominio, no solo para
+  recontar (pinear el objetivo caza artefactos de extracción pero NO de encuadre).
+- **Fallback de modelo**: si Fable 5 no está disponible, usar otro modelo DISTINTO al minador
+  (p. ej. Sonnet) con prompting duro; **nunca un 2º Opus** (redundancia, no diversidad).
+
 ## Fase 4 — Informe + confirmación (SIEMPRE)
 
 Presentar a Carlos, en español, claro y directo (sin relleno), separando:
@@ -180,6 +220,12 @@ Presentar a Carlos, en español, claro y directo (sin relleno), separando:
 - **🆕 Nuevas** / **✏️ Ampliaciones** — tabla: hallazgo · acción · ficha · prioridad.
 - **🗑️ Poda propuesta** — fichas obsoletas/contradichas con el motivo.
 - **🔎 Observaciones críticas** — puntos ciegos del barrido, inferencias a validar.
+
+Si corrió la **Fase 3.7** (`auditar`): añadir a cada fila el **veredicto de Fable**
+(CONFIRMADO / CON-CORRECCIÓN / REFUTADO / ESCALAR-A-HALLAZGO) junto con la nota de
+**re-verificación en disco de Opus**; los hallazgos que Fable elevó por completitud entran como
+filas nuevas. Cerrar con un **balance honesto del patrón** (qué cazó Fable que Opus no vio, qué
+afirmó de más), para que Carlos calibre si deja `auditar` de planta.
 
 Dar una **recomendación** explícita. Luego pedir confirmación con `AskUserQuestion`
 (p.ej. "guardar todo / solo altas / reviso una por una / nada"). **No escribir nada
